@@ -6,3 +6,4 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Style", "IDE0130:命名空間與資料夾結構不相符", Justification = "<暫止>", Scope = "namespace", Target = "~N:Microsoft.Extensions.DependencyInjection")]
+[assembly: SuppressMessage("Spellchecker", "CRRSP09:A misspelled word has been found", Justification = "<暫止>", Scope = "type", Target = "~T:LoggerDecoration.StackTraceUsageUtils")]

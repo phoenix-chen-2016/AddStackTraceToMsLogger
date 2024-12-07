@@ -14,40 +14,46 @@ internal static class StackTraceUsageUtils
 		if (method is null)
 			return null;
 
-		string methodName = method.Name;
+		var methodName = method.Name;
 
 		var callerClassType = method.DeclaringType;
-		if (cleanAsyncMoveNext && methodName == "MoveNext" && callerClassType?.DeclaringType != null && callerClassType.Name.IndexOf('<') == 0)
+		if (cleanAsyncMoveNext
+			&& methodName == "MoveNext"
+			&& callerClassType?.DeclaringType != null
+			&& callerClassType?.Name.IndexOf('<') == 0)
 		{
 			// NLog.UnitTests.LayoutRenderers.CallSiteTests+<CleanNamesOfAsyncContinuations>d_3'1.MoveNext
 			int endIndex = callerClassType.Name.IndexOf('>', 1);
 			if (endIndex > 1)
 			{
-				methodName = callerClassType.Name.Substring(1, endIndex - 1);
-				if (methodName.IndexOf('<') == 0)
-					methodName = methodName.Substring(1, methodName.Length - 1);    // Local functions, and anonymous-methods in Task.Run()
+				methodName = callerClassType.Name[1..endIndex];
+				if (methodName.StartsWith('<'))
+					methodName = methodName[1..];    // Local functions, and anonymous-methods in Task.Run()
 			}
 		}
 
 		// Clean up the function name if it is an anonymous delegate
 		// <.ctor>b__0
 		// <Main>b__2
-		if (cleanAnonymousDelegates && (methodName.IndexOf('<') == 0 && methodName.IndexOf("__", StringComparison.Ordinal) >= 0 && methodName.IndexOf('>') >= 0))
+		if (cleanAnonymousDelegates
+			&& methodName.StartsWith('<')
+			&& methodName.Contains("__")
+			&& methodName.Contains('>'))
 		{
 			int startIndex = methodName.IndexOf('<') + 1;
 			int endIndex = methodName.IndexOf('>');
-			methodName = methodName.Substring(startIndex, endIndex - startIndex);
+			methodName = methodName[startIndex..endIndex];
 		}
 
 		if (includeMethodInfo && methodName == method.Name)
 		{
-			methodName = method.ToString();
+			methodName = method?.ToString() ?? string.Empty;
 		}
 
 		return methodName;
 	}
 
-	public static string GetStackFrameMethodClassName(MethodBase method, bool includeNameSpace, bool cleanAsyncMoveNext, bool cleanAnonymousDelegates)
+	public static string? GetStackFrameMethodClassName(MethodBase method, bool includeNameSpace, bool cleanAsyncMoveNext, bool cleanAnonymousDelegates)
 	{
 		if (method is null)
 			return null;
@@ -63,10 +69,10 @@ internal static class StackTraceUsageUtils
 			callerClassType = callerClassType.DeclaringType;
 		}
 
-		string className = includeNameSpace ? callerClassType?.FullName : callerClassType?.Name;
+		var className = includeNameSpace ? callerClassType?.FullName : callerClassType?.Name;
 		if (cleanAnonymousDelegates && className?.IndexOf("<>", StringComparison.Ordinal) >= 0)
 		{
-			if (!includeNameSpace && callerClassType.DeclaringType != null && callerClassType.IsNested)
+			if (!includeNameSpace && callerClassType?.DeclaringType != null && callerClassType.IsNested)
 			{
 				className = callerClassType.DeclaringType.Name;
 			}
@@ -76,21 +82,26 @@ internal static class StackTraceUsageUtils
 				int index = className.IndexOf("+<>", StringComparison.Ordinal);
 				if (index >= 0)
 				{
-					className = className.Substring(0, index);
+					className = className[..index];
 				}
 			}
 		}
 
 		if (includeNameSpace && className?.IndexOf('.') == -1)
 		{
-			var typeNamespace = GetNamespaceFromTypeAssembly(callerClassType);
-			className = string.IsNullOrEmpty(typeNamespace) ? className : string.Concat(typeNamespace, ".", className);
+			var typeNamespace = callerClassType is null
+				? null
+				: GetNamespaceFromTypeAssembly(callerClassType);
+
+			className = string.IsNullOrEmpty(typeNamespace)
+				? className
+				: string.Concat(typeNamespace, ".", className);
 		}
 
 		return className;
 	}
 
-	private static string GetNamespaceFromTypeAssembly(Type callerClassType)
+	private static string? GetNamespaceFromTypeAssembly(Type callerClassType)
 	{
 		var classAssembly = callerClassType.Assembly;
 		if (classAssembly != null && classAssembly != mscorlibAssembly && classAssembly != systemAssembly)
@@ -98,7 +109,7 @@ internal static class StackTraceUsageUtils
 			var assemblyFullName = classAssembly.FullName;
 			if (assemblyFullName?.IndexOf(',') >= 0 && !assemblyFullName.StartsWith("System.", StringComparison.Ordinal) && !assemblyFullName.StartsWith("Microsoft.", StringComparison.Ordinal))
 			{
-				return assemblyFullName.Substring(0, assemblyFullName.IndexOf(','));
+				return assemblyFullName[..assemblyFullName.IndexOf(',')];
 			}
 		}
 

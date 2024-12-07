@@ -78,7 +78,7 @@ internal class CallSiteInformation
 	/// <param name="stackTrace">The stack trace.</param>
 	/// <param name="userStackFrame">Index of the first user stack frame within the stack trace.</param>
 	/// <param name="loggerType">Type of the logger or logger wrapper. This is still Logger if it's a subclass of Logger.</param>
-	public void SetStackTrace(StackTrace stackTrace, int? userStackFrame = null, Type loggerType = null)
+	public void SetStackTrace(StackTrace stackTrace, int? userStackFrame = null, Type? loggerType = null)
 	{
 		StackTrace = stackTrace;
 		if (!userStackFrame.HasValue && stackTrace != null)
@@ -132,7 +132,7 @@ internal class CallSiteInformation
 
 				return lastDot < 0 || lastDot >= CallerClassName.Length - 1
 					? CallerClassName
-					: CallerClassName.Substring(lastDot + 1);
+					: CallerClassName[(lastDot + 1)..];
 			}
 		}
 
@@ -155,7 +155,7 @@ internal class CallSiteInformation
 		if (!string.IsNullOrEmpty(CallerMethodName))
 			return CallerMethodName;
 
-		method = method ?? GetCallerStackFrameMethod(0);
+		method ??= GetCallerStackFrameMethod(0);
 		if (method is null)
 			return string.Empty;
 
