@@ -26,25 +26,33 @@ internal class WrapLogger(ILogger originLogger) : ILogger
 		var methodName = callSiteInfo.GetCallerMethodName(null, false, true, true);
 		var className = callSiteInfo.GetCallerClassName(null, true, true, true);
 
+		var traceAttributes = new List<KeyValuePair<string, object>>()
+		{
+			new("LineNumber", lineNumber),
+			new("FileName", fileName),
+			new("MethodName", methodName),
+			new("ClassName", className)
+		};
+
 		if (state is IReadOnlyList<KeyValuePair<string, object>> values)
 		{
-			originLogger.Log(logLevel, eventId, values.Concat([
-				new KeyValuePair<string, object>("LineNumber", lineNumber),
-				new KeyValuePair<string, object>("FileName", fileName),
-				new KeyValuePair<string, object>("MethodName", methodName),
-				new KeyValuePair<string, object>("ClassName", className)
-			]).ToList().AsReadOnly(), exception, (IReadOnlyList<KeyValuePair<string, object>> w, Exception? ex) => formatter(state, ex));
+			originLogger.Log(
+				logLevel,
+				eventId,
+				values.Concat(traceAttributes).ToList().AsReadOnly(),
+				exception,
+				(_, _) => formatter(state, exception));
 		}
 		else
 		{
-			originLogger.Log(logLevel, eventId, new List<KeyValuePair<string, object?>>()
-			{
-				new KeyValuePair<string, object>("LineNumber", lineNumber),
-				new KeyValuePair<string, object>("FileName", fileName),
-				new KeyValuePair<string, object>("MethodName", methodName),
-				new KeyValuePair<string, object>("ClassName", className),
-				new KeyValuePair<string, object>("State", state!)
-			}.AsReadOnly(), exception, (IReadOnlyList<KeyValuePair<string, object>> w, Exception? ex) => formatter(state, ex));
+			traceAttributes.Add(new("State", state!));
+
+			originLogger.Log(
+				logLevel,
+				eventId,
+				traceAttributes.AsReadOnly(),
+				exception,
+				(_, _) => formatter(state, exception));
 		}
 	}
 }
